@@ -352,6 +352,11 @@ public class StructsGenerator extends JNIGenerator {
                     output("Fc.");
                     output(field.getName());
                     outputln(");");
+                    outputln("\tint len = env->GetArrayLength(lpObject1);");
+                    outputln("\tlpStruct->" + field.getName() + ".resize(len);");
+//                    output("\tint len = lpStruct->");
+//                    output(field.getName());
+//                    outputln(".size();");
                     if (isCPP) {
                         output("\tenv->Get");
                     } else {
@@ -359,14 +364,16 @@ public class StructsGenerator extends JNIGenerator {
                     }
                     output(componentType.getTypeSignature1(!componentType.equals(componentType64)));
                     if (isCPP) {
-                        output("ArrayRegion(lpObject1, 0, sizeof(");
+                        output("ArrayRegion(lpObject1, 0, ");
                     } else {
-                        output("ArrayRegion(env, lpObject1, 0, sizeof(");
+                        output("ArrayRegion(env, lpObject1, 0, ");
                     }
-                    if (!accessor.isNonMemberGetter())
-                        output("lpStruct->");
-                    output(accessor.getter());
-                    output(")");
+                    output("len ");
+//                    output("sizeof(");
+//                    if (!accessor.isNonMemberGetter())
+//                        output("lpStruct->");
+//                    output(accessor.getter());
+//                    output(")");
                     if (!componentType.isType("byte")) {
                         output(" / sizeof(");
                         output(componentType.getTypeSignature2(!componentType.equals(componentType64)));
@@ -378,6 +385,7 @@ public class StructsGenerator extends JNIGenerator {
                     if (!accessor.isNonMemberGetter())
                         output("lpStruct->");
                     output(accessor.getter());
+                    output(".data()");
                     outputln(");");
                     output("\t}");
                 } else {
@@ -510,54 +518,61 @@ public class StructsGenerator extends JNIGenerator {
                 JNIType componentType = type.getComponentType(), componentType64 = type64.getComponentType();
                 if (componentType.isPrimitive()) {
                     outputln("\t{");
-                    output("\t");
-                    output(type.getTypeSignature2(allowConversion));
-                    output(" lpObject1 = (");
-                    output(type.getTypeSignature2(allowConversion));
-                    if (isCPP) {
-                        output(")env->GetObjectField(lpObject, ");
-                    } else {
-                        output(")(*env)->GetObjectField(env, lpObject, ");
-                    }
-                    output(field.getDeclaringClass().getSimpleName());
-                    output("Fc.");
-                    output(field.getName());
-                    outputln(");");
-                    if (isCPP) {
-                        output("\tenv->Set");
-                    } else {
-                        output("\t(*env)->Set");
-                    }
-                    output(componentType.getTypeSignature1(!componentType.equals(componentType64)));
-                    if (isCPP) {
-                        output("ArrayRegion(lpObject1, 0, sizeof(");
-                    } else {
-                        output("ArrayRegion(env, lpObject1, 0, sizeof(");
-                    }
-                    if (!accessor.isNonMemberGetter())
-                        output("lpStruct->");
-                    if (accessor.isMethodGetter()) {
-                        String getterStart = accessor.getter().split("\\(")[0];
-                        output(getterStart + "(");
-                        if (accessor.isNonMemberGetter())
-                            output("lpStruct");
-                        output(")");
-                    } else {
-                        output(accessor.getter());
-                    }
-                    output(")");
-                    if (!componentType.isType("byte")) {
-                        output(" / sizeof(");
-                        output(componentType.getTypeSignature2(!componentType.equals(componentType64)));
-                        output(")");
-                    }
-                    output(", (");
-                    output(type.getTypeSignature4(allowConversion, false));
-                    output(")");
-                    if (!accessor.isNonMemberGetter())
-                        output("lpStruct->");
-                    output(accessor.getter());
-                    outputln(");");
+					output("\tint len = lpStruct->");
+					output(field.getName());
+					outputln(".size();");
+					outputln("\t" + componentType.getTypeSignature2(!componentType.equals(componentType64)) + "Array lpObject1 = env->New" + componentType.getTypeSignature1(!componentType.equals(componentType64)) + "Array(len);");
+					outputln("\tenv->Set" + componentType.getTypeSignature1(!componentType.equals(componentType64)) + "ArrayRegion(lpObject1, 0, len, (jbyte *)lpStruct->" + field.getName() + ".data());");
+					outputln("\tenv->SetObjectField(lpObject1, ConfigurationFc." + field.getName() + ", lpObject1);");
+//                    output("\t");
+//                    output(type.getTypeSignature2(allowConversion));
+//                    output(" lpObject1 = (");
+//                    output(type.getTypeSignature2(allowConversion));
+//                    if (isCPP) {
+//                        output(")env->GetObjectField(lpObject, ");
+//                    } else {
+//                        output(")(*env)->GetObjectField(env, lpObject, ");
+//                    }
+//                    output(field.getDeclaringClass().getSimpleName());
+//                    output("Fc.");
+//                    output(field.getName());
+//                    outputln(");");
+//                    if (isCPP) {
+//                        output("\tenv->Set");
+//                    } else {
+//                        output("\t(*env)->Set");
+//                    }
+//                    output(componentType.getTypeSignature1(!componentType.equals(componentType64)));
+//                    if (isCPP) {
+//                        output("ArrayRegion(lpObject1, 0, ");
+//                    } else {
+//                        output("ArrayRegion(env, lpObject1, 0, ");
+//                    }
+//                    output("sizeof(");
+//                    if (!accessor.isNonMemberGetter())
+//                        output("lpStruct->");
+//                    if (accessor.isMethodGetter()) {
+//                        String getterStart = accessor.getter().split("\\(")[0];
+//                        output(getterStart + "(");
+//                        if (accessor.isNonMemberGetter())
+//                            output("lpStruct");
+//                        output(")");
+//                    } else {
+//                        output(accessor.getter());
+//                    }
+//                    output(")");
+//                    if (!componentType.isType("byte")) {
+//                        output(" / sizeof(");
+//                        output(componentType.getTypeSignature2(!componentType.equals(componentType64)));
+//                        output(")");
+//                    }
+//                    output(", (");
+//                    output(type.getTypeSignature4(allowConversion, false));
+//                    output(")");
+//                    if (!accessor.isNonMemberGetter())
+//                        output("lpStruct->");
+//                    output(accessor.getter());
+//                    outputln(");");
                     output("\t}");
                 } else {
                     throw new Error("not done");
