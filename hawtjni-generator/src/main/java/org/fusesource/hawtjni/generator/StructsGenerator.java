@@ -405,11 +405,11 @@ public class StructsGenerator extends JNIGenerator {
 //                        output("lpStruct->");
 //                    output(accessor.getter());
 //                    output(")");
-                    if (!componentType.isType("byte")) {
-                        output(" / sizeof(");
-                        output(componentType.getTypeSignature2(!componentType.equals(componentType64)));
-                        output(")");
-                    }
+//                    if (!componentType.isType("byte")) {
+//                        output(" / sizeof(");
+//                        output(componentType.getTypeSignature2(!componentType.equals(componentType64)));
+//                        output(")");
+//                    }
                     output(", (");
                     output(type.getTypeSignature4(!type.equals(type64), false));
                     output(")");
@@ -418,6 +418,9 @@ public class StructsGenerator extends JNIGenerator {
                     output(accessor.getter());
                     output(".data()");
                     outputln(");");
+                    output("\t}");
+                } else if(componentType.isType("java.lang.String")) {
+                    outputln("{");
                     output("\t}");
                 } else {
                     throw new Error("not done");
@@ -549,18 +552,25 @@ public class StructsGenerator extends JNIGenerator {
                 outputln("\t{");
 				outputln("\tconst char *str = (const char *)lpStruct->" + field.getName() + ".data();");
                 outputln("\tjstring lpObject1 = env->NewStringUTF(str);");
-                outputln("\tenv->SetObjectField(lpObject1, ConfigurationFc." + field.getName() + ", lpObject1);");
+                outputln("\tenv->SetObjectField(lpObject1, "
+                		+ field.getDeclaringClass().getSimpleName() + "Fc." + field.getName() + ", lpObject1);");
                 output("\t}");
             } else if (type.isArray()) {
                 JNIType componentType = type.getComponentType(), componentType64 = type64.getComponentType();
                 if (componentType.isPrimitive()) {
-                    outputln("\t{");
+					outputln("\t{");
 					output("\tint len = lpStruct->");
 					output(field.getName());
 					outputln(".size();");
-					outputln("\t" + componentType.getTypeSignature2(!componentType.equals(componentType64)) + "Array lpObject1 = env->New" + componentType.getTypeSignature1(!componentType.equals(componentType64)) + "Array(len);");
-					outputln("\tenv->Set" + componentType.getTypeSignature1(!componentType.equals(componentType64)) + "ArrayRegion(lpObject1, 0, len, (jbyte *)lpStruct->" + field.getName() + ".data());");
-					outputln("\tenv->SetObjectField(lpObject1, ConfigurationFc." + field.getName() + ", lpObject1);");
+					outputln("\t" + componentType.getTypeSignature2(!componentType.equals(componentType64))
+							+ "Array lpObject1 = env->New"
+							+ componentType.getTypeSignature1(!componentType.equals(componentType64)) + "Array(len);");
+					outputln("\tenv->Set" + componentType.getTypeSignature1(!componentType.equals(componentType64))
+							+ "ArrayRegion(lpObject1, 0, len, ("
+							+ componentType.getTypeSignature2(!componentType.equals(componentType64)) + " *)lpStruct->"
+							+ field.getName() + ".data());");
+					outputln("\tenv->SetObjectField(lpObject1, " + field.getDeclaringClass().getSimpleName() + "Fc."
+							+ field.getName() + ", lpObject1);");
 //                    output("\t");
 //                    output(type.getTypeSignature2(allowConversion));
 //                    output(" lpObject1 = (");
