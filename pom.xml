@@ -242,7 +242,7 @@
         <module>hawtjni-runtime</module>
         <module>hawtjni-generator</module>
         <module>hawtjni-maven-plugin</module>
-        <module>hawtjni-example</module>
+        <!-- <module>hawtjni-example</module> -->
         <!--
     <module>hawtjni-website</module>
         -->
