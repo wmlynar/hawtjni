@@ -371,7 +371,8 @@ public class StructsGenerator extends JNIGenerator {
                 output("Fc.");
                 output(field.getName());
                 outputln(");");
-                outputln("\tconst char *nativeString = env->GetStringUTFChars(lpObject1, 0);");
+                outputln("\tconst char *nativeString = (lpObject1 != NULL) ? env->GetStringUTFChars(lpObject1, 0) : \"\";");
+//                outputln("\tconst char *nativeString = (lpObject1 != NULL) ? env->GetStringUTFChars(lpObject1, 0) : 0;");
                 output("\t");
                 if (!accessor.isNonMemberSetter())
                     output("lpStruct->");
@@ -385,7 +386,7 @@ public class StructsGenerator extends JNIGenerator {
                     output(" = ");
                 }
                 outputln("nativeString;");
-                outputln("\tenv->ReleaseStringUTFChars(lpObject1, nativeString);");
+                outputln("\tif (lpObject1 != NULL) env->ReleaseStringUTFChars(lpObject1, nativeString);");
                 output("\t}");
             } else if (type.isArray()) {
                 JNIType componentType = type.getComponentType(), componentType64 = type64.getComponentType();
@@ -409,15 +410,15 @@ public class StructsGenerator extends JNIGenerator {
                     output("Fc.");
                     output(field.getName());
                     outputln(");");
-                    outputln("\tint len = env->GetArrayLength(lpObject1);");
+                    outputln("\tint len = (lpObject1 != NULL) ? env->GetArrayLength(lpObject1) : 0;");
                     outputln("\tlpStruct->" + field.getName() + ".resize(len);");
 //                    output("\tint len = lpStruct->");
 //                    output(field.getName());
 //                    outputln(".size();");
                     if (isCPP) {
-                        output("\tenv->Get");
+                        output("\tif (lpObject1 != NULL) env->Get");
                     } else {
-                        output("\t(*env)->Get");
+                        output("\tif (lpObject1 != NULL) (*env)->Get");
                     }
                     output(componentType.getTypeSignature1(!componentType.equals(componentType64)));
                     if (isCPP) {
@@ -468,12 +469,12 @@ public class StructsGenerator extends JNIGenerator {
                     output("Fc.");
                     output(field.getName());
                     outputln(");");
-                    outputln("\tint len = env->GetArrayLength(lpObject1);");
+                    outputln("\tint len = (lpObject1 != NULL) ? env->GetArrayLength(lpObject1) : 0;");
                     outputln("\tlpStruct->" + field.getName() + ".resize(len);");
                     outputln("\tfor(int i=0; i<len; i++)");
                     outputln("\t{");
 					outputln("\t\tjobject lpObject2 = (jobject)env->GetObjectArrayElement(lpObject1, i);");
-					outputln("\t\tget" + simpleNameNoBrackets + "Fields(env, lpObject2, &lpStruct->" + field.getName()
+					outputln("\t\tif (lpObject2 != NULL) get" + simpleNameNoBrackets + "Fields(env, lpObject2, &lpStruct->" + field.getName()
 							+ "[i]);");
 					outputln("\t}");
                     output("\t}");
