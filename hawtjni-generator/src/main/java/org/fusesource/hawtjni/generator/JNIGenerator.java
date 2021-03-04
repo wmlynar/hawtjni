@@ -147,8 +147,11 @@ public abstract class JNIGenerator {
         return buffer.toString();
     }
 
-    public abstract void generate(JNIClass clazz);
+    public void generateCaches(JNIClass clazz) {
+    }
 
+    public abstract void generate(JNIClass clazz);
+    
     public void generateCopyright() {
     }
 
@@ -167,8 +170,16 @@ public abstract class JNIGenerator {
                 break;
             }
         }
+        generateCaches(classes);
         generate(classes);
         output.flush();
+    }
+
+    protected void generateCaches(ArrayList<JNIClass> classes) {
+        for (JNIClass clazz : classes) {
+            if (clazz.getGenerate())
+                generateCaches(clazz);
+        }
     }
 
     protected void generate(ArrayList<JNIClass> classes) {

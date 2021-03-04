@@ -52,6 +52,16 @@ public class StructsGenerator extends JNIGenerator {
         outputln();
     }
 
+    public void generateCaches(JNIClass clazz) {
+        ArrayList<JNIField> fields = getStructFields(clazz);
+        if (fields.isEmpty())
+            return;
+        if (header) {
+        } else {
+            generateSourceFileCache(clazz);
+        }
+    }
+
     public void generate(JNIClass clazz) {
         ArrayList<JNIField> fields = getStructFields(clazz);
         if (fields.isEmpty())
@@ -87,17 +97,25 @@ public class StructsGenerator extends JNIGenerator {
         outputln();
     }
 
-    void generateSourceFile(JNIClass clazz) {
+    void generateSourceFileCache(JNIClass clazz) {
         generateSourceStart(clazz);
         generateFIDsStructure(clazz);
         outputln();
         generateGlobalVar(clazz);
-        outputln();
-        generateFunctions(clazz);
         generateSourceEnd(clazz);
         outputln();
     }
 
+    void generateSourceFile(JNIClass clazz) {
+        generateSourceStart(clazz);
+//        generateFIDsStructure(clazz);
+//        outputln();
+//        generateGlobalVar(clazz);
+//        outputln();
+        generateFunctions(clazz);
+        generateSourceEnd(clazz);
+        outputln();
+    }
     void generateSourceStart(JNIClass clazz) {
         String conditional = clazz.getConditional();
         if (conditional != null) {
@@ -173,6 +191,7 @@ public class StructsGenerator extends JNIGenerator {
         outputln("_FID_CACHE {");
         outputln("\tint cached;");
         outputln("\tjclass clazz;");
+        outputln("\tjmethodID constructor;");
         List<JNIField> fields = clazz.getDeclaredFields();
         boolean first = true;
         for (JNIField field : fields) {
@@ -224,6 +243,7 @@ public class StructsGenerator extends JNIGenerator {
             }
         }
         outputln();
+        outputln("\t" + simpleName + "Fc.constructor = env->GetMethodID(" + simpleName + "Fc.clazz, \"<init>\", \"()V\");");
         List<JNIField> fields = clazz.getDeclaredFields();
         for (JNIField field : fields) {
             if (ignoreField(field))
@@ -420,10 +440,32 @@ public class StructsGenerator extends JNIGenerator {
                     outputln(");");
                     output("\t}");
                 } else if(componentType.isType("java.lang.String")) {
-                    outputln("{");
-                    output("\t}");
+                	throw new Error("not done");
                 } else {
-                    throw new Error("not done");
+                	String simpleNameNoBrackets = simpleName.substring(0, simpleName.length()-2);
+                    outputln("{");
+                    output("\t");
+                    output(type.getTypeSignature2(!type.equals(type64)));
+                    output(" lpObject1 = (");
+                    output(type.getTypeSignature2(!type.equals(type64)));
+                    if (isCPP) {
+                        output(")env->GetObjectField(lpObject, ");
+                    } else {
+                        output(")(*env)->GetObjectField(env, lpObject, ");
+                    }
+                    output(field.getDeclaringClass().getSimpleName());
+                    output("Fc.");
+                    output(field.getName());
+                    outputln(");");
+                    outputln("\tint len = env->GetArrayLength(lpObject1);");
+                    outputln("\tlpStruct->" + field.getName() + ".resize(len);");
+                    outputln("\tfor(int i=0; i<len; i++)");
+                    outputln("\t{");
+					outputln("\t\tjobject lpObject2 = (jobject)env->GetObjectArrayElement(lpObject1, i);");
+					outputln("\t\tget" + simpleNameNoBrackets + "Fields(env, lpObject2, &lpStruct->" + field.getName()
+							+ "[i]);");
+					outputln("\t}");
+                    output("\t}");
                 }
             } else {
                 outputln("\t{");
@@ -552,7 +594,7 @@ public class StructsGenerator extends JNIGenerator {
                 outputln("\t{");
 				outputln("\tconst char *str = (const char *)lpStruct->" + field.getName() + ".data();");
                 outputln("\tjstring lpObject1 = env->NewStringUTF(str);");
-                outputln("\tenv->SetObjectField(lpObject1, "
+                outputln("\tenv->SetObjectField(lpObject, "
                 		+ field.getDeclaringClass().getSimpleName() + "Fc." + field.getName() + ", lpObject1);");
                 output("\t}");
             } else if (type.isArray()) {
@@ -569,7 +611,7 @@ public class StructsGenerator extends JNIGenerator {
 							+ "ArrayRegion(lpObject1, 0, len, ("
 							+ componentType.getTypeSignature2(!componentType.equals(componentType64)) + " *)lpStruct->"
 							+ field.getName() + ".data());");
-					outputln("\tenv->SetObjectField(lpObject1, " + field.getDeclaringClass().getSimpleName() + "Fc."
+					outputln("\tenv->SetObjectField(lpObject, " + field.getDeclaringClass().getSimpleName() + "Fc."
 							+ field.getName() + ", lpObject1);");
 //                    output("\t");
 //                    output(type.getTypeSignature2(allowConversion));
@@ -621,8 +663,30 @@ public class StructsGenerator extends JNIGenerator {
 //                    output(accessor.getter());
 //                    outputln(");");
                     output("\t}");
+                } else if(componentType.isType("java.lang.String")) {
+                	throw new Error("not done");
                 } else {
-                    throw new Error("not done");
+                	String simpleNameNoBrackets = simpleName.substring(0, simpleName.length()-2);
+                    outputln("\t{");
+					output("\tint len = lpStruct->");
+					output(field.getName());
+					outputln(".size();");
+					outputln("\t" + componentType.getTypeSignature2(!componentType.equals(componentType64))
+							+ "Array lpObject1 = env->New"
+							+ componentType.getTypeSignature1(!componentType.equals(componentType64)) + "Array(len, "
+							+ simpleNameNoBrackets + "Fc.clazz, 0);");
+                    outputln("\tfor(int i=0; i<len; i++)");
+                    outputln("\t{");
+					outputln("\t\tjobject lpObject2 = env->NewObject(" + simpleNameNoBrackets + "Fc.clazz, "
+							+ simpleNameNoBrackets + "Fc.constructor);");
+					outputln("\t\tset" + simpleNameNoBrackets + "Fields(env, lpObject2, &lpStruct->" + field.getName()
+							+ "[i]);");
+					outputln("\t\tenv->SetObjectArrayElement(lpObject1, i, lpObject2);");
+					outputln("\t}");
+					
+					outputln("\tenv->SetObjectField(lpObject, " + field.getDeclaringClass().getSimpleName() + "Fc."
+							+ field.getName() + ", lpObject1);");
+                    output("\t}");
                 }
             } else {
                 outputln("\t{");
