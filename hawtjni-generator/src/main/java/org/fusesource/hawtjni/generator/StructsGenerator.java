@@ -330,6 +330,37 @@ public class StructsGenerator extends JNIGenerator {
                 if (accessor.isMethodSetter())
                     output(")");
                 output(");");
+            } else if (type.isType("java.lang.String")) {
+                outputln("{");
+                output("\t");
+                output(type.getTypeSignature2(!type.equals(type64)));
+                output(" lpObject1 = (");
+                output(type.getTypeSignature2(!type.equals(type64)));
+                if (isCPP) {
+                    output(")env->GetObjectField(lpObject, ");
+                } else {
+                    output(")(*env)->GetObjectField(env, lpObject, ");
+                }
+                output(field.getDeclaringClass().getSimpleName());
+                output("Fc.");
+                output(field.getName());
+                outputln(");");
+                outputln("\tconst char *nativeString = env->GetStringUTFChars(lpObject1, 0);");
+                output("\t");
+                if (!accessor.isNonMemberSetter())
+                    output("lpStruct->");
+                if (accessor.isMethodSetter()) {
+                    String setterStart = accessor.setter().split("\\(")[0];
+                    output(setterStart + "(");
+                    if (accessor.isNonMemberSetter())
+                        output("lpStruct, ");
+                } else {
+                    output(accessor.setter());
+                    output(" = ");
+                }
+                outputln("nativeString;");
+                outputln("\tenv->ReleaseStringUTFChars(lpObject1, nativeString);");
+                output("\t}");
             } else if (type.isArray()) {
                 JNIType componentType = type.getComponentType(), componentType64 = type64.getComponentType();
                 if (componentType.isPrimitive()) {
@@ -514,6 +545,12 @@ public class StructsGenerator extends JNIGenerator {
                     output(".get()");
                 }
                 output(");");
+            } else if (type.isType("java.lang.String")) {
+                outputln("\t{");
+				outputln("\tconst char *str = (const char *)lpStruct->" + field.getName() + ".data();");
+                outputln("\tjstring lpObject1 = env->NewStringUTF(str);");
+                outputln("\tenv->SetObjectField(lpObject1, ConfigurationFc." + field.getName() + ", lpObject1);");
+                output("\t}");
             } else if (type.isArray()) {
                 JNIType componentType = type.getComponentType(), componentType64 = type64.getComponentType();
                 if (componentType.isPrimitive()) {
