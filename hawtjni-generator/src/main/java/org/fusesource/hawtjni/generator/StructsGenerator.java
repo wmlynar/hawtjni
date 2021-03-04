@@ -161,7 +161,8 @@ public class StructsGenerator extends JNIGenerator {
         String simpleName = clazz.getSimpleName();
         output("void cache");
         output(simpleName);
-        outputln("Fields(JNIEnv *env, jobject lpObject);");
+        //outputln("Fields(JNIEnv *env, jobject lpObject);");
+        outputln("Fields(JNIEnv *env);");
         if (clazz.getFlag(ClassFlag.STRUCT) && !clazz.getFlag(ClassFlag.TYPEDEF)) {
             output("struct ");
         }
@@ -215,7 +216,7 @@ public class StructsGenerator extends JNIGenerator {
         String clazzName = clazz.getNativeName();
         output("void cache");
         output(simpleName);
-        outputln("Fields(JNIEnv *env, jobject lpObject)");
+        outputln("Fields(JNIEnv *env)");
         outputln("{");
         output("\tif (");
         output(simpleName);
@@ -229,17 +230,22 @@ public class StructsGenerator extends JNIGenerator {
         }
         output("\t");
         output(simpleName);
+        String className = "\"" + clazz.getName().replace('.', '/') + "\"";
         if (isCPP) {
             if (GLOBAL_REF) {
-                output("Fc.clazz = (jclass)env->NewGlobalRef(env->GetObjectClass(lpObject));");
+//                output("Fc.clazz = (jclass)env->NewGlobalRef(env->GetObjectClass(lpObject));");
+				output("Fc.clazz = (jclass)env->NewGlobalRef(env->FindClass(" + className + "));");
             } else {
-                output("Fc.clazz = env->GetObjectClass(lpObject);");
+//                output("Fc.clazz = env->GetObjectClass(lpObject);");
+				output("Fc.clazz = env->FindClass(" + className + ");");
             }
         } else {
             if (GLOBAL_REF) {
-                output("Fc.clazz = (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, lpObject));");
+//                output("Fc.clazz = (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, lpObject));");
+				output("Fc.clazz = (*env)->NewGlobalRef(env, (*env)->FindClass(" + className + "));");
             } else {
-                output("Fc.clazz = (*env)->GetObjectClass(env, lpObject);");
+//                output("Fc.clazz = (*env)->GetObjectClass(env, lpObject);");
+				output("Fc.clazz = (*env)->FindClass(" + className + ");");
             }
         }
         outputln();
@@ -444,6 +450,11 @@ public class StructsGenerator extends JNIGenerator {
                 } else {
                 	String simpleNameNoBrackets = simpleName.substring(0, simpleName.length()-2);
                     outputln("{");
+                    output("\tif (!");
+                    output(simpleNameNoBrackets);
+                    output("Fc.cached) cache");
+                    output(simpleNameNoBrackets);
+            		outputln("Fields(env);");
                     output("\t");
                     output(type.getTypeSignature2(!type.equals(type64)));
                     output(" lpObject1 = (");
@@ -469,6 +480,11 @@ public class StructsGenerator extends JNIGenerator {
                 }
             } else {
                 outputln("\t{");
+                output("\tif (!");
+                output(simpleName);
+                output("Fc.cached) cache");
+                output(simpleName);
+        		outputln("Fields(env);");
                 if (isCPP) {
                     output("\tjobject lpObject1 = env->GetObjectField(lpObject, ");
                 } else {
@@ -512,7 +528,8 @@ public class StructsGenerator extends JNIGenerator {
         output(simpleName);
         output("Fc.cached) cache");
         output(simpleName);
-        outputln("Fields(env, lpObject);");
+//      outputln("Fields(env, lpObject);");
+		outputln("Fields(env);");
         if (clazz.getFlag(ClassFlag.ZERO_OUT)) {
             outputln("memset(lpStruct, 0, sizeof(struct " + clazzName + "));");
         }
@@ -668,6 +685,11 @@ public class StructsGenerator extends JNIGenerator {
                 } else {
                 	String simpleNameNoBrackets = simpleName.substring(0, simpleName.length()-2);
                     outputln("\t{");
+                    output("\tif (!");
+                    output(simpleNameNoBrackets);
+                    output("Fc.cached) cache");
+                    output(simpleNameNoBrackets);
+            		outputln("Fields(env);");
 					output("\tint len = lpStruct->");
 					output(field.getName());
 					outputln(".size();");
@@ -690,6 +712,11 @@ public class StructsGenerator extends JNIGenerator {
                 }
             } else {
                 outputln("\t{");
+                output("\tif (!");
+                output(simpleName);
+                output("Fc.cached) cache");
+                output(simpleName);
+        		outputln("Fields(env);");
                 if (isCPP) {
                     output("\tjobject lpObject1 = env->GetObjectField(lpObject, ");
                 } else {
@@ -729,7 +756,8 @@ public class StructsGenerator extends JNIGenerator {
         output(simpleName);
         output("Fc.cached) cache");
         output(simpleName);
-        outputln("Fields(env, lpObject);");
+//      outputln("Fields(env, lpObject);");
+		outputln("Fields(env);");
         generateSetFields(clazz);
         outputln("}");
     }
